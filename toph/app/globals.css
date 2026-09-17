@@ -79,6 +79,29 @@ body {
 }
 
 /**
+ * Hide a scrollbar without disabling scrolling.
+ *
+ * The sidebar is a fixed 280px column that only overflows on short screens, so
+ * a visible scrollbar there is noise against a design that has none — but it
+ * still has to scroll, or Log Out becomes unreachable on a laptop.
+ *
+ * Three declarations because no single one covers every engine: `scrollbar-width`
+ * is the standard property (Firefox), `-ms-overflow-style` covers legacy Edge,
+ * and the `::-webkit-scrollbar` pseudo-element is what Chrome and Safari read.
+ *
+ * Scrolling by wheel, trackpad, keyboard and touch all still work — only the
+ * indicator is hidden.
+ */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/**
  * The map pin, matching the Figma: a 13px disc carrying a vertical gradient
  * inside a 2px white ring. Written as plain CSS because Leaflet injects it as
  * an icon's innerHTML, which Tailwind's class scanner never sees.

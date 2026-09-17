@@ -101,7 +101,7 @@ function NavRow({ label, icon: Icon, badge, active }: NavItem) {
 
 export function Sidebar({ newCount = 0 }: { newCount?: number }) {
   return (
-    <nav className="flex h-full w-sidebar shrink-0 flex-col gap-shell overflow-y-auto rounded-panel border border-line-strong bg-surface p-shell">
+    <nav className="no-scrollbar flex h-full w-sidebar shrink-0 flex-col gap-shell overflow-y-auto rounded-panel border border-line-strong bg-surface p-shell">
       {/* Account header */}
       <div className="flex w-full shrink-0 items-center justify-between rounded-control py-[4px] pl-[4px] pr-[14px]">
         <div className="flex shrink-0 items-center gap-shell">
