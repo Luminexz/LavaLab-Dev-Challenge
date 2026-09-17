@@ -33,10 +33,13 @@ export default async function DashboardPage({
     // 1366 main + 10 gutter. Capping the shell at that width and centring it
     // keeps the table's five columns at their designed 223.6px instead of
     // stretching them across a wide monitor. Below 1676px everything flexes.
-    <div className="mx-auto flex size-full min-h-screen max-w-[1676px] items-stretch gap-shell bg-surface p-shell">
+    // h-screen + overflow-hidden pins the shell to the viewport so the sidebar
+    // stays put; the main column owns its own scrollbar. The sidebar gets one
+    // too, for laptop screens shorter than its 935px design height.
+    <div className="mx-auto flex h-screen w-full max-w-[1676px] items-stretch gap-shell overflow-hidden bg-surface p-shell">
       <Sidebar newCount={stats?.new_today ?? 0} />
 
-      <main className="flex min-w-0 max-w-[1366px] flex-1 flex-col gap-shell px-[30px]">
+      <main className="flex min-w-0 max-w-[1366px] flex-1 flex-col gap-shell overflow-y-auto px-[30px]">
         <header className="flex w-full shrink-0 items-center justify-between py-[20px]">
           <div className="flex shrink-0 flex-col">
             <h1 className="whitespace-nowrap text-[20px] font-semibold text-ink">Dashboard</h1>

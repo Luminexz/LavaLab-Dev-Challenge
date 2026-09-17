@@ -77,3 +77,21 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/**
+ * The map pin, matching the Figma: a 13px disc carrying a vertical gradient
+ * inside a 2px white ring. Written as plain CSS because Leaflet injects it as
+ * an icon's innerHTML, which Tailwind's class scanner never sees.
+ *
+ * Colours sampled from the Figma render: #0175f0 at the top of the disc,
+ * #00c3f0 at the bottom.
+ */
+.toph-map-pin {
+  display: block;
+  box-sizing: content-box;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #0175f0 0%, #00c3f0 100%);
+}
