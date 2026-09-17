@@ -131,24 +131,21 @@ from (values
    'Planted Field C using the 12-row planter at 30 in spacing, 1.75 in seed depth. Soil moisture good. One 20-minute stop to clear a plugged row unit.',
    0.96, 52, false, now() - interval '3 days'),
 
-  -- Dated two days ago but created 20 minutes ago: a phone that was out of
-  -- signal in the field and only synced on the way back. That is the ordinary
-  -- case for this product, and it makes this the farm's newest arrival — so it
-  -- is the log behind the "1 New" subtitle and the green sidebar badge.
   ('Sophia Lee', 'FIELD D', null, 'irrigation',
    current_date - 2, time '06:30', time '09:30',
    'Field D irrigation check, six thirty start. Walked all four laterals. Found two emitters plugged on lateral three near the head, swapped them out. Pressure is holding at twelve psi across the block. Ran the set for two and a half hours, shut it down at nine thirty.',
    'Irrigation run on Field D. Replaced two plugged emitters on lateral three. Pressure steady at 12 psi. Set ran 2.5 hours.',
-   0.89, 41, false, now() - interval '20 minutes'),
+   0.89, 41, false, now() - interval '2 days'),
 
-  -- Five logs dated today -> "Todays Recordings (5)". All already reviewed:
-  -- the "1 New" badge belongs to Sophia Lee's unread log above, which is dated
-  -- two days ago but only synced 20 minutes ago.
-  ('Diego Ramirez', 'FIELD E', 'UAN-32', 'fertilizing',
-   current_date, time '05:45', time '09:10',
-   'Side dressing Field E with UAN thirty two, going out at thirty gallons an acre. Started before six to stay ahead of the heat.',
-   'Side-dressed Field E with UAN-32 at 30 gal/acre. Early start to avoid heat.',
-   0.92, 29, true, now() - interval '9 hours'),
+  -- Five logs dated today -> "Todays Recordings (5)". The first is Isaac's
+  -- afternoon fertilizing log: dated today, synced 20 minutes ago, and still
+  -- unread, which makes it the log behind the "1 New" subtitle and the green
+  -- sidebar badge. Opening it clears both. The other four are already reviewed.
+  ('Isaac Wang', 'FIELD A', 'UAN-32', 'fertilizing',
+   current_date, time '13:00', time '15:20',
+   'Uh, Isaac again, afternoon log. Side-dressed Field A with, uh, thirty-two percent UAN, about, let''s see, a hundred and forty pounds of nitrogen per acre. Started one o''clock, done around three twenty. Covered the whole forty acres. Uh, what else, the applicator tank ran dry near the end so I had to go refill, that put me behind maybe twenty minutes. That''s it.',
+   'Side-dressed Field A with 32% UAN at about 140 lb N/acre across the full 40 acres. Applicator tank ran dry near the end; refill cost roughly 20 minutes.',
+   0.93, 44, false, now() - interval '20 minutes'),
 
   ('Amara Okafor', 'FIELD A', null, 'scouting',
    current_date, time '07:00', time '08:30',
