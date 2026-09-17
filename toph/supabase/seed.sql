@@ -131,14 +131,19 @@ from (values
    'Planted Field C using the 12-row planter at 30 in spacing, 1.75 in seed depth. Soil moisture good. One 20-minute stop to clear a plugged row unit.',
    0.96, 52, false, now() - interval '3 days'),
 
+  -- Dated two days ago but created 20 minutes ago: a phone that was out of
+  -- signal in the field and only synced on the way back. That is the ordinary
+  -- case for this product, and it makes this the farm's newest arrival — so it
+  -- is the log behind the "1 New" subtitle and the green sidebar badge.
   ('Sophia Lee', 'FIELD D', null, 'irrigation',
    current_date - 2, time '06:30', time '09:30',
    'Field D irrigation check, six thirty start. Walked all four laterals. Found two emitters plugged on lateral three near the head, swapped them out. Pressure is holding at twelve psi across the block. Ran the set for two and a half hours, shut it down at nine thirty.',
    'Irrigation run on Field D. Replaced two plugged emitters on lateral three. Pressure steady at 12 psi. Set ran 2.5 hours.',
-   0.89, 41, false, now() - interval '2 days'),
+   0.89, 41, false, now() - interval '20 minutes'),
 
-  -- Five logs dated today -> "Todays Recordings (5)".
-  -- The last one was created 40 minutes ago -> the "1 New" badge.
+  -- Five logs dated today -> "Todays Recordings (5)". All already reviewed:
+  -- the "1 New" badge belongs to Sophia Lee's unread log above, which is dated
+  -- two days ago but only synced 20 minutes ago.
   ('Diego Ramirez', 'FIELD E', 'UAN-32', 'fertilizing',
    current_date, time '05:45', time '09:10',
    'Side dressing Field E with UAN thirty two, going out at thirty gallons an acre. Started before six to stay ahead of the heat.',
@@ -167,7 +172,7 @@ from (values
    current_date, time '13:00', time '16:45',
    'Fungicide application on Field C, Quilt Xcel at the label rate. Conditions were good, calm and overcast. Re-entry is twelve hours so nobody back in until tomorrow morning.',
    'Applied Quilt Xcel fungicide to Field C at label rate. Calm, overcast conditions. 12-hour REI in effect until tomorrow morning.',
-   0.93, 44, true, now() - interval '40 minutes'),
+   0.93, 44, true, now() - interval '3 hours'),
 
   -- Historical logs. Reviewed, spread across the past two months so date
   -- filters, sorting and search have real data to work against.
