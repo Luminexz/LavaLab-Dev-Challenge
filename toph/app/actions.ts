@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -71,17 +72,71 @@ export async function removeTagFromLog(formData: FormData): Promise<void> {
 }
 
 /**
- * Mark a log reviewed, which removes it from "New Employee Logs".
+ * Set a log's reviewed flag — the row checkbox, in both directions.
  *
- * This is the only column the browser is allowed to write — enforced by the
- * column-level GRANT in 0002_rls.sql, not just by this function.
+ * `is_reviewed` is the only column the browser may write, and that is enforced
+ * by the column-level GRANT in 0002_rls.sql rather than by this function alone.
  */
-export async function markLogReviewed(formData: FormData): Promise<void> {
+export async function setLogReviewed(formData: FormData): Promise<void> {
   const logId = String(formData.get('logId') ?? '');
   if (!logId) return;
+  const reviewed = formData.get('reviewed') === 'true';
 
   const supabase = await createClient();
-  await supabase.from('logs').update({ is_reviewed: true }).eq('id', logId);
+  await supabase.from('logs').update({ is_reviewed: reviewed }).eq('id', logId);
 
   revalidatePath('/');
+}
+
+/**
+ * The header checkbox: mark everything currently listed read, or unread.
+ *
+ * One statement with `in`, not a request per row — marking twenty logs read
+ * should be one round trip.
+ */
+export async function setManyReviewed(formData: FormData): Promise<void> {
+  const raw = String(formData.get('logIds') ?? '');
+  const reviewed = formData.get('reviewed') === 'true';
+
+  let ids: string[];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    ids = Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return;
+  }
+  if (ids.length === 0) return;
+
+  const supabase = await createClient();
+  await supabase.from('logs').update({ is_reviewed: reviewed }).in('id', ids);
+
+  revalidatePath('/');
+}
+
+/**
+ * Open a log: mark it read, then navigate to the expanded URL.
+ *
+ * Opening a log is what "reviewing" one means, so this mirrors an email client
+ * — reading an item clears its unread state. It is done here, in an action,
+ * rather than as a side effect during render: a render that writes to the
+ * database runs again on every retry and refetch, and Server Components are
+ * meant to be side-effect free.
+ *
+ * The row does not vanish underneath the reader — getDashboardData keeps the
+ * expanded log in the result even once it is no longer unread. It leaves the
+ * list when it is closed.
+ */
+export async function openLog(formData: FormData): Promise<never> {
+  const logId = String(formData.get('logId') ?? '');
+  const href = String(formData.get('href') ?? '/');
+
+  if (logId) {
+    const supabase = await createClient();
+    await supabase.from('logs').update({ is_reviewed: true }).eq('id', logId);
+    revalidatePath('/');
+  }
+
+  // Only ever navigate within this app: `href` arrives from the form, and an
+  // absolute URL here would turn the button into an open redirect.
+  redirect(href.startsWith('/') ? href : '/');
 }

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { AudioLines, Funnel, ListFilter, X, type LucideIcon } from 'lucide-react';
 import { formatActivity, formatLogDate, formatTimeRange } from '@/lib/format';
 import { ExpandedEntry } from '@/components/expanded-entry';
+import { ReviewAllToggle, ReviewToggle } from '@/components/review-toggle';
+import { openLog } from '@/app/actions';
 import { hrefWith, type RawParams } from '@/lib/url';
 import type { DashboardFilters, LogDetail, LogRow } from '@/lib/queries';
 
@@ -46,18 +48,14 @@ function Chip({
   );
 }
 
-function RowCheckbox({ label }: { label: string }) {
-  return (
-    <input
-      type="checkbox"
-      aria-label={label}
-      className="size-4 shrink-0 cursor-pointer appearance-none rounded-[2px] border border-ink-secondary bg-surface checked:border-ink checked:bg-ink"
-    />
-  );
-}
-
 const COLUMNS = ['EMPLOYEE', 'ACTIVITY', 'DATE', 'FIELD', 'TIME'] as const;
 const COLSPAN = COLUMNS.length + 2;
+
+/** Shared so the View button and the Close link are pixel-identical. */
+const VIEW_BUTTON =
+  'mx-auto flex w-fit items-center justify-center rounded-pill border border-hairline ' +
+  'bg-surface px-[16px] py-[8px] text-[14px] text-ink-secondary ' +
+  'drop-shadow-[0px_0px_2px_rgba(0,0,0,0.05)]';
 
 /** date_desc -> date_asc -> employee -> date_desc */
 const NEXT_SORT: Record<DashboardFilters['sort'], DashboardFilters['sort']> = {
@@ -87,6 +85,12 @@ export function LogsTable({
 }) {
   const sortingByDate = filters.sort !== 'employee';
 
+  // In "new" scope the list can carry one already-read row: the one currently
+  // open. Count the genuinely unread ones so the heading does not tick up just
+  // because someone expanded something.
+  const reviewedCount = logs.filter((log) => log.isReviewed).length;
+  const listedCount = filters.scope === 'new' ? logs.length - reviewedCount : logs.length;
+
   return (
     <div className="w-full rounded-panel border border-hairline bg-surface">
       <div className="flex w-full items-center justify-between px-[30px] py-[20px]">
@@ -94,7 +98,7 @@ export function LogsTable({
           <AudioLines className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
           <p className="whitespace-nowrap text-[16px] text-ink">
             {filters.scope === 'new' ? 'New Employee Logs' : 'All Employee Logs'}{' '}
-            <span className="text-ink-muted">({logs.length})</span>
+            <span className="text-ink-muted">({listedCount})</span>
           </p>
         </div>
 
@@ -111,7 +115,7 @@ export function LogsTable({
             href={hrefWith(params, { sort: NEXT_SORT[filters.sort] })}
           />
           <Chip
-            label={filters.thisMonth ? `This Month (${logs.length})` : 'This Month'}
+            label={filters.thisMonth ? `This Month (${listedCount})` : 'This Month'}
             icon={ListFilter}
             active={filters.thisMonth}
             href={hrefWith(params, { month: filters.thisMonth ? '0' : '1' })}
@@ -139,8 +143,13 @@ export function LogsTable({
 
         <thead>
           <tr className="border-b border-line opacity-30">
-            <th className="py-[20px] pl-[56px] pr-[4px]">
-              <span className="sr-only">Select</span>
+            {/* opacity-30 dims the header row per the Figma, but this control
+                is live, so it opts back out. */}
+            <th className="py-[20px] pl-[56px] pr-[4px] opacity-100">
+              <ReviewAllToggle
+                logIds={logs.map((log) => log.id)}
+                reviewedCount={reviewedCount}
+              />
             </th>
             {COLUMNS.map((column) => (
               <th
@@ -176,7 +185,11 @@ export function LogsTable({
                   className={`h-[58px] ${isOpen ? 'bg-selected' : 'hover:bg-selected'}`}
                 >
                   <td className="pl-[56px] pr-[4px]">
-                    <RowCheckbox label={`Select log from ${log.employeeName}`} />
+                    <ReviewToggle
+                      logId={log.id}
+                      reviewed={log.isReviewed}
+                      employeeName={log.employeeName}
+                    />
                   </td>
                   <td className="px-[10px] py-[20px] text-[14px] text-ink-secondary">
                     {log.employeeName}
@@ -197,13 +210,31 @@ export function LogsTable({
                       of padding would make this cell 74px and drag the whole
                       row up with it — a <tr> height is a minimum, not a cap. */}
                   <td className="py-[12px] pr-[20px]">
-                    <Link
-                      href={hrefWith(params, { expanded: isOpen ? null : log.id })}
-                      scroll={false}
-                      className="mx-auto flex w-fit items-center justify-center rounded-pill border border-hairline bg-surface px-[16px] py-[8px] text-[14px] text-ink-secondary drop-shadow-[0px_0px_2px_rgba(0,0,0,0.05)]"
-                    >
-                      {isOpen ? 'Close' : 'View'}
-                    </Link>
+                    {isOpen ? (
+                      // Closing is pure navigation, so a plain link.
+                      <Link
+                        href={hrefWith(params, { expanded: null })}
+                        scroll={false}
+                        className={VIEW_BUTTON}
+                      >
+                        Close
+                      </Link>
+                    ) : (
+                      // Opening writes (it marks the log read) before
+                      // navigating, so it is a form posting to a Server Action
+                      // rather than a link. A GET should not change data.
+                      <form action={openLog} className="contents">
+                        <input type="hidden" name="logId" value={log.id} />
+                        <input
+                          type="hidden"
+                          name="href"
+                          value={hrefWith(params, { expanded: log.id })}
+                        />
+                        <button type="submit" className={VIEW_BUTTON}>
+                          View
+                        </button>
+                      </form>
+                    )}
                   </td>
                 </tr>,
 

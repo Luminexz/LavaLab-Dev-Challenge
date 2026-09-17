@@ -27,9 +27,13 @@ export type DashboardFilters = {
  *    browser and re-fetching from there.
  *  - Any view of the dashboard is a link someone can send to a colleague.
  */
+/** `expanded` is interpolated into a PostgREST filter, so only accept a UUID. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function parseFilters(params: Record<string, string | string[] | undefined>): DashboardFilters {
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const sort = one(params.sort);
+  const expanded = one(params.expanded) ?? '';
 
   return {
     q: (one(params.q) ?? '').trim(),
@@ -37,7 +41,7 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     // Active unless explicitly removed, matching the chip's default state.
     thisMonth: one(params.month) !== '0',
     sort: sort === 'date_asc' || sort === 'employee' ? sort : 'date_desc',
-    expanded: one(params.expanded) ?? null,
+    expanded: UUID.test(expanded) ? expanded : null,
   };
 }
 
@@ -94,7 +98,15 @@ export async function getDashboardData(filters: DashboardFilters): Promise<{
       'id, employee_name, activity, log_date, field_name, start_time, end_time, is_reviewed',
     );
 
-  if (filters.scope === 'new') logsQuery = logsQuery.eq('is_reviewed', false);
+  if (filters.scope === 'new') {
+    // Opening a log marks it read (see openLog in app/actions.ts). If the list
+    // were strictly "unread", the row would disappear the instant it was
+    // opened, taking the panel with it. Keeping the expanded log in the result
+    // lets it stay until the reader closes it.
+    logsQuery = filters.expanded
+      ? logsQuery.or(`is_reviewed.eq.false,id.eq.${filters.expanded}`)
+      : logsQuery.eq('is_reviewed', false);
+  }
 
   if (filters.thisMonth) {
     const { from, to } = currentMonthRange();
