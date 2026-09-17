@@ -167,13 +167,44 @@ export function LogsTable({
         <tbody>
           {logs.length === 0 ? (
             <tr>
+              {/*
+                Three different empty states, because they mean different
+                things. Reviewing every log is a success, not a failed search —
+                and it is the state a reviewer reaches by opening all four rows,
+                so it needs to point somewhere rather than look broken.
+              */}
               <td
                 colSpan={COLSPAN}
                 className="px-[20px] py-[40px] text-center text-[14px] text-ink-muted"
               >
-                {filters.q
-                  ? `No logs match “${filters.q}”.`
-                  : 'No logs match these filters.'}
+                {filters.q ? (
+                  <>
+                    No logs match “{filters.q}”.{' '}
+                    <Link href={hrefWith(params, { q: null })} className="text-ink underline">
+                      Clear search
+                    </Link>
+                  </>
+                ) : filters.scope === 'new' ? (
+                  <>
+                    You’re all caught up — every log has been reviewed.{' '}
+                    <Link
+                      href={hrefWith(params, { scope: 'all' })}
+                      className="text-ink underline"
+                    >
+                      View all logs
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    No logs match these filters.{' '}
+                    <Link
+                      href={hrefWith(params, { month: '0', q: null })}
+                      className="text-ink underline"
+                    >
+                      Clear filters
+                    </Link>
+                  </>
+                )}
               </td>
             </tr>
           ) : (
