@@ -18,6 +18,11 @@ import { Pause, Play } from 'lucide-react';
 const BAR_COUNT = 96;
 const WIDTH = 592;
 const HEIGHT = 81;
+/** Floor for the quietest bar, so the waveform never breaks into gaps. */
+const MIN_BAR = 4;
+
+/** Two decimals is finer than a pixel here, and keeps the DOM small. */
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** xmur3 + mulberry32: a tiny seeded PRNG, so the shape is a pure function of the id. */
 function seededHeights(seed: string): number[] {
@@ -36,11 +41,25 @@ function seededHeights(seed: string): number[] {
   };
 
   return Array.from({ length: BAR_COUNT }, (_, i) => {
-    // A gentle envelope so the clip swells and tapers like speech rather than
+    const t = i / (BAR_COUNT - 1);
+
+    // A gentle arch, so the clip swells and tapers like speech rather than
     // looking like uniform noise.
-    const envelope = Math.sin((i / (BAR_COUNT - 1)) * Math.PI) ** 0.6;
+    //
+    // Deliberately built from sqrt of a parabola rather than the more obvious
+    // `Math.sin(t * PI) ** 0.6`. ECMAScript does not require sin, cos or pow to
+    // be correctly rounded, so Node and the browser can disagree in the last
+    // bit — which surfaces as a React hydration mismatch, because the server
+    // writes y="17.462965544421248" and the client computes 17.46296554442125.
+    // Math.sqrt is the exception: IEEE 754 requires it to be correctly rounded,
+    // so this expression is bit-identical everywhere.
+    const envelope = Math.sqrt(4 * t * (1 - t));
     const jitter = 0.35 + rand() * 0.65;
-    return Math.max(4, HEIGHT * envelope * jitter);
+    const height = MIN_BAR + (HEIGHT - MIN_BAR) * envelope * jitter;
+
+    // Quantise anyway. Two decimals is far finer than a pixel at this size, and
+    // it keeps the rendered attributes short and stable.
+    return Math.round(height * 100) / 100;
   });
 }
 
@@ -100,8 +119,8 @@ export function RecordingPlayer({
           {heights.map((h, i) => (
             <rect
               key={i}
-              x={i * gap}
-              y={(HEIGHT - h) / 2}
+              x={round2(i * gap)}
+              y={round2((HEIGHT - h) / 2)}
               width={1.6}
               height={h}
               rx={0.8}

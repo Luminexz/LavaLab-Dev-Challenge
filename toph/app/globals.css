@@ -79,6 +79,26 @@ body {
 }
 
 /**
+ * Restore the pointer cursor on buttons.
+ *
+ * Tailwind v4's Preflight sets `cursor: default` on buttons to match the raw
+ * browser default, where v3 left them alone. The result is that every <button>
+ * in the app — View, Play Recording, Add Tag, Expand Map — shows an arrow while
+ * the <Link>-based chips beside them show a hand, which reads as though the
+ * buttons are inert.
+ *
+ * Applied once here rather than sprinkling `cursor-pointer` across a dozen
+ * components, so a new button is correct by default. `:not(:disabled)` leaves
+ * the disabled Play button free to show `cursor-not-allowed`.
+ */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/**
  * Hide a scrollbar without disabling scrolling.
  *
  * The sidebar is a fixed 280px column that only overflows on short screens, so

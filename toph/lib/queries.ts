@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { RECORDINGS_BUCKET } from '@/lib/storage';
 import type { ActivityType, Database, PolygonBoundary } from '@/lib/types/database';
 
 export type DashboardStats = Database['public']['Views']['dashboard_stats']['Row'];
@@ -174,7 +175,13 @@ export async function getDashboardData(filters: DashboardFilters): Promise<{
         isReviewed: d.is_reviewed,
         transcript: d.transcript,
         summary: d.summary,
-        audioUrl: d.audio_url,
+        // The database stores an object path; the host comes from this
+        // client's configuration. getPublicUrl is pure string building — it
+        // makes no network call — so resolving here costs nothing and keeps
+        // the player component unaware of Storage entirely.
+        audioUrl: d.audio_path
+          ? supabase.storage.from(RECORDINGS_BUCKET).getPublicUrl(d.audio_path).data.publicUrl
+          : null,
         audioDurationSeconds: d.audio_duration_seconds,
         chemicalName: d.chemical_name,
         chemicalReiHours: d.chemical_rei_hours,

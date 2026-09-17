@@ -160,8 +160,20 @@ supabase/migrations/0001_init.sql
 supabase/migrations/0002_rls.sql
 supabase/migrations/0003_dashboard_stats.sql
 supabase/migrations/0004_log_rows.sql
+supabase/migrations/0005_audio_path.sql
 supabase/seed.sql
 ```
+
+### Recordings
+
+`logs.audio_path` stores an object path inside a public Storage bucket named
+`recordings` — not a URL. A full URL would bake the Supabase project ref into every row, so pointing
+the app at a different project would leave every link resolving to the old one. The path is the
+stable fact; the host comes from `NEXT_PUBLIC_SUPABASE_URL` and the two are joined at read time.
+
+To attach audio: create the bucket, upload clips named as listed in
+[`supabase/attach_audio.sql`](toph/supabase/attach_audio.sql), then run that file. Logs without a
+recording render the player disabled rather than broken.
 
 `seed.sql` truncates first, so it is safe to re-run. It dates several logs relative to the day it
 runs, so re-running it refreshes the demo data.
@@ -176,9 +188,6 @@ REST endpoint.
 
 Things I would do next, in order:
 
-- **No audio files attached.** The player is fully wired — play, pause, click-to-seek, progress — but
-  `audio_url` is null on the seeded logs, so the button is disabled. Uploading clips to Supabase
-  Storage and setting the column is all that is missing.
 - **Waveform bars are generated from the log id**, not from real amplitude data. They are
   deterministic, so a given log always draws the same shape. A real implementation would compute peak
   data at ingest and store it alongside the audio.

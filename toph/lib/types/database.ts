@@ -121,7 +121,7 @@ export interface Database {
           log_date: string;
           start_time: string;
           end_time: string;
-          audio_url: string | null;
+          audio_path: string | null;
           audio_duration_seconds: number | null;
           transcript: string | null;
           summary: string | null;
@@ -139,7 +139,7 @@ export interface Database {
           log_date: string;
           start_time: string;
           end_time: string;
-          audio_url?: string | null;
+          audio_path?: string | null;
           audio_duration_seconds?: number | null;
           transcript?: string | null;
           summary?: string | null;
@@ -205,7 +205,7 @@ export interface Database {
           created_at: string;
           transcript: string | null;
           summary: string | null;
-          audio_url: string | null;
+          audio_path: string | null;
           audio_duration_seconds: number | null;
           transcription_confidence: number | null;
           chemical_name: string | null;
