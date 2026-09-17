@@ -100,29 +100,35 @@ from (values
 
   -- The four rows shown in the Figma table. Unreviewed, so they are exactly
   -- what "New Employee Logs (4)" returns on a fresh load.
+  --
+  -- The Figma dates them April 19-22, 2026. They are seeded relative to today
+  -- instead, because the "This Month" chip is a real filter: with April dates
+  -- it would correctly match nothing and hide every row, which looks like a
+  -- broken filter rather than a working one. The employees, fields, activities
+  -- and times are exactly as designed.
   ('Isaac Wang', 'FIELD A', 'Roundup PowerMAX', 'spraying',
-   date '2026-04-19', time '06:00', time '10:40',
+   current_date - 5, time '06:00', time '10:40',
    'Alright, starting on Field A a little after six. Got the sprayer loaded with Roundup PowerMAX, running about twenty gallons per acre. Wind is light out of the northwest, maybe three miles an hour, so no drift concerns. Covered the whole north block and about half the south before the tank ran dry. Refilled around nine and finished out. Wrapped up about ten forty.',
    'Applied Roundup PowerMAX across Field A at roughly 20 gal/acre. Light northwest wind, no drift risk noted. One tank refill mid-morning. Full coverage completed.',
-   0.94, 47, false, timestamptz '2026-04-19 10:52:00-07'),
+   0.94, 47, false, now() - interval '5 days'),
 
   ('Maya Patel', 'FIELD B', null, 'harvesting',
-   date '2026-04-20', time '07:30', time '11:15',
+   current_date - 4, time '07:30', time '11:15',
    'Starting harvest on Field B at seven thirty. Crew of four on the picking line. Yield looks strong on the east side, noticeably lighter near the drainage ditch on the west edge, probably the standing water from last week. Filled nine bins total. Knocked off at quarter past eleven.',
    'Harvested Field B with a four-person crew. Nine bins filled. Yield lighter along the western drainage edge, likely due to prior standing water.',
-   0.91, 38, false, timestamptz '2026-04-20 11:20:00-07'),
+   0.91, 38, false, now() - interval '4 days'),
 
   ('Liam Johnson', 'FIELD C', null, 'planting',
-   date '2026-04-21', time '08:00', time '12:00',
+   current_date - 3, time '08:00', time '12:00',
    'Planting Field C this morning, started right at eight. Running the twelve row planter, thirty inch spacing, seed depth set at an inch and three quarters. Soil moisture is just about perfect. Had to stop around ten to clear a plugged row unit, cost me maybe twenty minutes. Finished the field at noon.',
    'Planted Field C using the 12-row planter at 30 in spacing, 1.75 in seed depth. Soil moisture good. One 20-minute stop to clear a plugged row unit.',
-   0.96, 52, false, timestamptz '2026-04-21 12:06:00-07'),
+   0.96, 52, false, now() - interval '3 days'),
 
   ('Sophia Lee', 'FIELD D', null, 'irrigation',
-   date '2026-04-22', time '06:30', time '09:30',
+   current_date - 2, time '06:30', time '09:30',
    'Field D irrigation check, six thirty start. Walked all four laterals. Found two emitters plugged on lateral three near the head, swapped them out. Pressure is holding at twelve psi across the block. Ran the set for two and a half hours, shut it down at nine thirty.',
    'Irrigation run on Field D. Replaced two plugged emitters on lateral three. Pressure steady at 12 psi. Set ran 2.5 hours.',
-   0.89, 41, false, timestamptz '2026-04-22 09:34:00-07'),
+   0.89, 41, false, now() - interval '2 days'),
 
   -- Five logs dated today -> "Todays Recordings (5)".
   -- The last one was created 40 minutes ago -> the "1 New" badge.
@@ -241,8 +247,8 @@ where f.name = 'Bays Ranch';
 insert into log_tags (log_id, tag_id)
 select l.id, t.id
 from (values
-  ('Isaac Wang',   date '2026-04-19', 'Compliance'),
-  ('Liam Johnson', date '2026-04-21', 'Equipment Issue')
+  ('Isaac Wang',   current_date - 5, 'Compliance'),
+  ('Liam Johnson', current_date - 3, 'Equipment Issue')
 ) as v(emp, log_date, label)
 join employees e on e.full_name = v.emp
 join logs l      on l.employee_id = e.id and l.log_date = v.log_date

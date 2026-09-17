@@ -43,11 +43,21 @@
   --color-badge: rgba(1, 156, 37, 0.5);
   --color-badge-edge: rgba(0, 105, 57, 0.26);
 
+  /* The "Add Tag" button in the expanded entry — a 10% green wash with a
+     matching border, and solid green for its label and icon. */
+  --color-tag: rgba(20, 108, 68, 0.1);
+  --color-tag-ink: #146c44;
+
+  /* Waveform: the played portion is solid, the rest is dimmed. */
+  --color-wave-played: #146c44;
+  --color-wave-remaining: #d4d4d4;
+
   /* --- Radii ------------------------------------------------------------ */
   --radius-control: 4px; /* nav rows, checkboxes */
   --radius-card: 14px; /* stat cards */
   --radius-panel: 16px; /* sidebar, main table card */
   --radius-pill: 80px; /* filter chips, search field, View button */
+  --radius-button: 7px; /* Play Recording / Add Tag / Expand Map (7.04 in Figma) */
 
   /* --- Layout ----------------------------------------------------------- */
   --spacing-sidebar: 280px; /* fixed sidebar width from the Figma component */

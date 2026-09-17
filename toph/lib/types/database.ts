@@ -189,6 +189,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      /** See supabase/migrations/0004_log_rows.sql */
+      log_rows: {
+        Row: {
+          id: string;
+          farm_id: string;
+          employee_name: string;
+          activity: ActivityType;
+          activity_text: string;
+          log_date: string;
+          field_name: string;
+          start_time: string;
+          end_time: string;
+          is_reviewed: boolean;
+          created_at: string;
+          transcript: string | null;
+          summary: string | null;
+          audio_url: string | null;
+          audio_duration_seconds: number | null;
+          transcription_confidence: number | null;
+          chemical_name: string | null;
+          chemical_rei_hours: number | null;
+          center_lat: number;
+          center_lng: number;
+          boundary: PolygonBoundary;
+        };
+        Relationships: [];
+      };
     };
     Functions: Record<string, never>;
     Enums: { activity_type: ActivityType };

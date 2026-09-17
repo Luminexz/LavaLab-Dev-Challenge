@@ -1,7 +1,45 @@
 import { createClient } from '@/lib/supabase/server';
-import type { ActivityType, Database } from '@/lib/types/database';
+import type { ActivityType, Database, PolygonBoundary } from '@/lib/types/database';
 
 export type DashboardStats = Database['public']['Views']['dashboard_stats']['Row'];
+
+/** Every knob the dashboard exposes, read from the URL. */
+export type DashboardFilters = {
+  /** Free text across employee name, field name and activity. */
+  q: string;
+  /** The "Filter" chip: just the unreviewed logs, or all of them. */
+  scope: 'new' | 'all';
+  /** The "This Month" chip. Removable, hence a boolean rather than a range. */
+  thisMonth: boolean;
+  /** The "Date" and "Sort" chips. */
+  sort: 'date_desc' | 'date_asc' | 'employee';
+  /** Which row is expanded, if any. */
+  expanded: string | null;
+};
+
+/**
+ * Filters live in the URL rather than in React state, deliberately:
+ *
+ *  - The brief asks that a refresh keep working. A URL survives refresh;
+ *    useState does not.
+ *  - It keeps the page a Server Component. Changing a filter re-runs the query
+ *    on the server instead of shipping a filtering implementation to the
+ *    browser and re-fetching from there.
+ *  - Any view of the dashboard is a link someone can send to a colleague.
+ */
+export function parseFilters(params: Record<string, string | string[] | undefined>): DashboardFilters {
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const sort = one(params.sort);
+
+  return {
+    q: (one(params.q) ?? '').trim(),
+    scope: one(params.scope) === 'all' ? 'all' : 'new',
+    // Active unless explicitly removed, matching the chip's default state.
+    thisMonth: one(params.month) !== '0',
+    sort: sort === 'date_asc' || sort === 'employee' ? sort : 'date_desc',
+    expanded: one(params.expanded) ?? null,
+  };
+}
 
 export type LogRow = {
   id: string;
@@ -11,50 +49,136 @@ export type LogRow = {
   fieldName: string;
   startTime: string;
   endTime: string;
+  isReviewed: boolean;
 };
 
-/**
- * Everything the dashboard's first paint needs, in two queries that run
- * together rather than one after the other.
- *
- * `employees(full_name)` and `fields(name)` are Postgres joins resolved by
- * PostgREST in a single round trip — not a query per row. Getting this wrong
- * is how a four-row table becomes nine sequential requests.
- */
-export async function getDashboardData(): Promise<{
+export type LogDetail = LogRow & {
+  transcript: string | null;
+  summary: string | null;
+  audioUrl: string | null;
+  audioDurationSeconds: number | null;
+  chemicalName: string | null;
+  chemicalReiHours: number | null;
+  centerLat: number;
+  centerLng: number;
+  boundary: PolygonBoundary;
+  tags: { id: string; label: string }[];
+};
+
+/** First and last day of the current month, as YYYY-MM-DD. */
+function currentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate(),
+    ).padStart(2, '0')}`;
+  return {
+    from: iso(new Date(now.getFullYear(), now.getMonth(), 1)),
+    // Day 0 of next month is the last day of this one.
+    to: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+  };
+}
+
+export async function getDashboardData(filters: DashboardFilters): Promise<{
   stats: DashboardStats | null;
   logs: LogRow[];
+  detail: LogDetail | null;
+  allTags: { id: string; label: string }[];
   error: string | null;
 }> {
   const supabase = await createClient();
 
-  const [statsResult, logsResult] = await Promise.all([
+  let logsQuery = supabase
+    .from('log_rows')
+    .select(
+      'id, employee_name, activity, log_date, field_name, start_time, end_time, is_reviewed',
+    );
+
+  if (filters.scope === 'new') logsQuery = logsQuery.eq('is_reviewed', false);
+
+  if (filters.thisMonth) {
+    const { from, to } = currentMonthRange();
+    logsQuery = logsQuery.gte('log_date', from).lte('log_date', to);
+  }
+
+  if (filters.q) {
+    // Commas and parens are the OR syntax's own delimiters, so strip them
+    // rather than let a stray character produce a malformed filter.
+    const safe = filters.q.replace(/[,()]/g, ' ').trim();
+    if (safe) {
+      logsQuery = logsQuery.or(
+        `employee_name.ilike.%${safe}%,field_name.ilike.%${safe}%,activity_text.ilike.%${safe}%`,
+      );
+    }
+  }
+
+  logsQuery =
+    filters.sort === 'employee'
+      ? logsQuery.order('employee_name', { ascending: true })
+      : logsQuery.order('log_date', { ascending: filters.sort === 'date_asc' });
+
+  const [statsResult, logsResult, tagsResult] = await Promise.all([
     supabase.from('dashboard_stats').select('*').limit(1).maybeSingle(),
-    supabase
-      .from('logs')
-      .select(
-        'id, activity, log_date, start_time, end_time, employees(full_name), fields(name)',
-      )
-      .eq('is_reviewed', false)
-      .order('log_date', { ascending: true }),
+    logsQuery,
+    supabase.from('tags').select('id, label').order('label'),
   ]);
 
-  const error = statsResult.error?.message ?? logsResult.error?.message ?? null;
-
-  // PostgREST types a to-one join as possibly-array depending on how it infers
-  // the relationship; normalise once here so components never deal with it.
-  const one = <T,>(v: T | T[] | null): T | null =>
-    Array.isArray(v) ? (v[0] ?? null) : v;
-
-  const logs: LogRow[] = (logsResult.data ?? []).map((row) => ({
-    id: row.id,
-    employeeName: one(row.employees)?.full_name ?? 'Unknown',
-    activity: row.activity,
-    logDate: row.log_date,
-    fieldName: one(row.fields)?.name ?? '—',
-    startTime: row.start_time,
-    endTime: row.end_time,
+  const logs: LogRow[] = (logsResult.data ?? []).map((r) => ({
+    id: r.id,
+    employeeName: r.employee_name,
+    activity: r.activity,
+    logDate: r.log_date,
+    fieldName: r.field_name,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    isReviewed: r.is_reviewed,
   }));
 
-  return { stats: statsResult.data ?? null, logs, error };
+  // Only fetch the full record for the row that is actually open. Transcripts
+  // are long; loading one for every row would waste most of the payload.
+  let detail: LogDetail | null = null;
+  let detailError: string | null = null;
+  if (filters.expanded) {
+    const [detailResult, logTagsResult] = await Promise.all([
+      supabase.from('log_rows').select('*').eq('id', filters.expanded).maybeSingle(),
+      supabase.from('log_tags').select('tag_id, tags(id, label)').eq('log_id', filters.expanded),
+    ]);
+
+    detailError = detailResult.error?.message ?? null;
+    const d = detailResult.data;
+    if (d) {
+      const tags = (logTagsResult.data ?? [])
+        .map((lt) => (Array.isArray(lt.tags) ? lt.tags[0] : lt.tags))
+        .filter((t): t is { id: string; label: string } => Boolean(t));
+
+      detail = {
+        id: d.id,
+        employeeName: d.employee_name,
+        activity: d.activity,
+        logDate: d.log_date,
+        fieldName: d.field_name,
+        startTime: d.start_time,
+        endTime: d.end_time,
+        isReviewed: d.is_reviewed,
+        transcript: d.transcript,
+        summary: d.summary,
+        audioUrl: d.audio_url,
+        audioDurationSeconds: d.audio_duration_seconds,
+        chemicalName: d.chemical_name,
+        chemicalReiHours: d.chemical_rei_hours,
+        centerLat: d.center_lat,
+        centerLng: d.center_lng,
+        boundary: d.boundary,
+        tags,
+      };
+    }
+  }
+
+  return {
+    stats: statsResult.data ?? null,
+    logs,
+    detail,
+    allTags: tagsResult.data ?? [],
+    error: statsResult.error?.message ?? logsResult.error?.message ?? detailError,
+  };
 }
