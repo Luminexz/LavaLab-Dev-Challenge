@@ -88,9 +88,25 @@ client cannot rewrite a transcript or reassign a log to a different worker.
 
 ### Two different meanings of "new"
 
-The design asks two questions that look alike. `is_reviewed` drives the **New Employee Logs** table;
-recency of `created_at` drives the **1 New** badge and the sidebar count. Collapsing them into one
-flag is why those numbers would contradict each other.
+The design asks two questions that look alike, and answers them with different numbers — the table
+header reads **(4)** while the badge reads **1**. So they cannot both be "unreviewed".
+
+- **New Employee Logs (n)** counts every unreviewed log.
+- **1 New**, and the green pill in the sidebar, counts logs that are unreviewed *and* arrived in the
+  farm's most recent hour of activity.
+
+Reading that recent log clears the badge; reading a different one does not. Marking it unread brings
+it back. Collapsing the two into one flag is what would make the design's own numbers contradict
+each other.
+
+The window is anchored to `max(created_at)` rather than `now()`, and "today" to `max(log_date)`
+rather than `current_date`. On a farm that is actually recording these are the same query — the
+newest log *is* today — but it means the dashboard describes the data it has rather than assuming
+the data is live, so the stat cards still read correctly when the app is opened days later.
+
+There is no `log_date = today` restriction on the badge, deliberately: voice logs sync when the phone
+regains signal, so a recording made in a field two days ago can arrive twenty minutes ago and is
+still the newest thing the owner has not seen.
 
 ---
 
@@ -161,8 +177,21 @@ supabase/migrations/0002_rls.sql
 supabase/migrations/0003_dashboard_stats.sql
 supabase/migrations/0004_log_rows.sql
 supabase/migrations/0005_audio_path.sql
+supabase/migrations/0006_stable_new_badge.sql
+supabase/migrations/0007_stats_anchor_to_latest_day.sql
+supabase/migrations/0008_new_badge_clears_when_read.sql
 supabase/seed.sql
 ```
+
+### Resetting the demo
+
+Using the dashboard changes it: opening a log marks it read, so after a few minutes of clicking the
+table is empty and the badge is gone. That is the feature working, but it is not how you want the
+app to look when someone else opens it.
+
+[`supabase/reset_demo_state.sql`](toph/supabase/reset_demo_state.sql) puts it back — four unread
+rows, badge at 1 — **without** truncating, so attached audio and any tags survive and
+`attach_audio.sql` does not need re-running. It is idempotent; run it as often as you like.
 
 ### Recordings
 
