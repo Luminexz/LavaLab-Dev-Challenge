@@ -176,7 +176,20 @@ export interface Database {
         ];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      /** See supabase/migrations/0003_dashboard_stats.sql */
+      dashboard_stats: {
+        Row: {
+          farm_id: string;
+          todays_recordings: number;
+          new_today: number;
+          active_workers: number;
+          response_accuracy: number | null;
+          unreviewed_logs: number;
+        };
+        Relationships: [];
+      };
+    };
     Functions: Record<string, never>;
     Enums: { activity_type: ActivityType };
     CompositeTypes: Record<string, never>;

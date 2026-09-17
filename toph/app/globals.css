@@ -1,26 +1,69 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/**
+ * Design tokens, read out of the Figma file (HAbZdn2mzPMj9uct0fswEY).
+ *
+ * The Figma defines only one published variable (Primary = #000000); every
+ * other value lives as a raw hex on individual layers. Rather than scatter
+ * forty arbitrary values like text-[#4d4d4d] through the markup, each distinct
+ * value is named once here. That is what makes "the secondary text is a shade
+ * too light" a one-line fix instead of a find-and-replace.
+ *
+ * Names describe ROLE, not appearance, so a later palette change does not
+ * leave a token called "gray" holding a green.
+ */
+@theme {
+  /* Geist is loaded by next/font in app/layout.tsx. The Figma uses Geist
+     Regular / Medium / SemiBold, so the family matches the design exactly. */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* --- Ink ------------------------------------------------------------- */
+  --color-ink: #000000; /* headings, nav labels, table cell text */
+  --color-ink-secondary: #4d4d4d; /* sub-headings, column headers, body copy */
+  --color-ink-muted: #b3b3b3; /* section labels (OVERVIEW), placeholders */
+  --color-ink-faint: #808080; /* the dimmest supporting text */
+
+  /* --- Surfaces -------------------------------------------------------- */
+  --color-surface: #ffffff; /* cards, sidebar, table */
+  --color-surface-sunken: #f8f8f8; /* table header strip */
+  --color-selected: rgba(0, 0, 0, 0.05); /* active nav row, hovered table row */
+
+  /* --- Borders ---------------------------------------------------------
+     Three weights, deliberately. The Figma separates the near-invisible
+     hairline between table rows from the heavier outline around controls. */
+  --color-hairline: #f2f2f2;
+  --color-line: #e6e6e6;
+  --color-line-strong: #a6a6a6;
+
+  /* --- Accent ----------------------------------------------------------
+     The one non-neutral in the whole design: the unread-count badge. Kept as
+     the designed rgba rather than a flattened hex, because it is drawn
+     semi-transparent over white and the translucency is the intent. */
+  --color-badge: rgba(1, 156, 37, 0.5);
+  --color-badge-edge: rgba(0, 105, 57, 0.26);
+
+  /* --- Radii ------------------------------------------------------------ */
+  --radius-control: 4px; /* nav rows, checkboxes */
+  --radius-card: 14px; /* stat cards */
+  --radius-panel: 16px; /* sidebar, main table card */
+  --radius-pill: 80px; /* filter chips, search field, View button */
+
+  /* --- Layout ----------------------------------------------------------- */
+  --spacing-sidebar: 280px; /* fixed sidebar width from the Figma component */
+  --spacing-shell: 10px; /* outer gutter around the whole app */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/**
+ * The create-next-app scaffold set `font-family: Arial` here, which silently
+ * overrode the Geist loaded in layout.tsx — the app rendered in the wrong
+ * typeface. Pointing body at the token fixes that.
+ *
+ * The scaffold's prefers-color-scheme dark block is also gone: this design is
+ * light-only, and a half-inherited dark mode looked broken on dark machines.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
