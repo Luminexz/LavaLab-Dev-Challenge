@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# toph
 
-## Getting Started
+The Next.js application. See the [repository README](../README.md) for the stack rationale,
+architecture decisions, database schema and setup instructions.
 
-First, run the development server:
+## Scripts
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Command | Does |
+| --- | --- |
+| `npm run dev` | Development server on http://localhost:3000 |
+| `npm run build` | Production build |
+| `npm run start` | Serve a production build |
+| `npm run lint` | ESLint |
+| `npm run db:types` | Regenerate `lib/types/database.ts` from the live schema (needs `SUPABASE_PROJECT_ID`) |
+
+## Layout
+
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+app/
+  page.tsx            Dashboard — Server Component, reads filters from the URL
+  actions.ts          Server Actions: add/remove tag, mark reviewed
+  globals.css         Design tokens extracted from the Figma
+components/
+  sidebar.tsx         Fixed navigation column
+  stat-card.tsx       The three headline metrics
+  logs-table.tsx      Log table, filter chips, expand/collapse
+  expanded-entry.tsx  The panel that opens under a row
+  recording-player.tsx  Waveform + audio playback (client)
+  tag-editor.tsx      Add/remove tags (client)
+  field-map.tsx       Leaflet wrapper, loaded with ssr: false
+  field-map-inner.tsx Map itself: satellite tiles, field polygon, pin
+lib/
+  queries.ts          All dashboard reads, plus URL filter parsing
+  format.ts           Date/time/activity display formatting
+  url.ts              Builds filter links
+  supabase/           Browser and server clients
+  types/database.ts   Types mirroring the SQL schema
+supabase/
+  migrations/         Schema, RLS, and two views — run in filename order
+  seed.sql            Demo data; truncates first, safe to re-run
+```
